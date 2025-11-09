@@ -3,7 +3,7 @@ const dataIndex = 0;
 const idIndex = 1;
 const boxIndex = 2;
 
-//getItems();
+//deleteItem('http://localhost:8080/item/3');
 
 createItemsTable();
 
@@ -62,7 +62,28 @@ async function createItemsTable() {
         var row = document.createElement("tr");
         var rowName = document.createElement("td");
         rowName.appendChild(document.createTextNode(items[i][dataIndex]));
+
+        var deleteTD = document.createElement("td");
+
+        var del = document.createElement("input");
+        del.type = "button";
+        del.className = "delete-button";
+        del.value = "Delete";
+        const delUrl = items[i][idIndex];
+        del.setAttribute('url', delUrl);
+        del.onclick = async function() {
+            await deleteItem(this.getAttribute("url"));
+            var myDiv = document.getElementById("itemstablediv");
+            var table = document.querySelector("table");
+            myDiv.removeChild(table);
+            items = [];
+            createItemsTable();
+        };
+
+        deleteTD.appendChild(del);
+
         row.appendChild(rowName);
+        row.appendChild(deleteTD);
         table.appendChild(row);
     }
 
@@ -70,3 +91,21 @@ async function createItemsTable() {
     myDiv.appendChild(table);
 
 }
+
+async function deleteItem(itemURL) {
+    await fetch(itemURL, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('delete successfull:', data);
+    })
+    .catch(error => {
+        console.error('error deleting:', error);
+    });
+}
+
+// get list of boxes
+// populate box name that is linked to item
+// drop down with list of boxes previously selected
+// > this will call a put that updates the box then refreshes the table
