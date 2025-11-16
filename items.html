@@ -1,5 +1,5 @@
 <!DOCTYPE html >
-<html lange="en">
+<html lang="en">
 	<head>
 		<link rel="icon" type="image/svg+xml" href="http://localhost:8180/image.svg">
         <link rel="stylesheet" href="http://localhost:8180/itemLocator/items.css">
@@ -11,6 +11,16 @@
 		<h1>Items</h1>
 
         <a href="itemLocator.html">Home Page</a>
+        <br>
+
+        <div id="newitemsdiv">
+            <form id="new_items_form">
+                <label for="new_items_input">New item </label>
+                <input type="text" id="new_items_input">
+                <input type="button" id="new_items_save_button" value="Save" onclick="saveItem(this.form)">
+            </form>
+        </div>
+
         <br>
 
         <div id="itemstablediv"></div>

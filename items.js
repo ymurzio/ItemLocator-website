@@ -5,6 +5,9 @@ const boxIndex = 2;
 
 var boxes = [];
 //deleteItem('http://localhost:8080/item/3');
+//postItem("itempost test");
+
+//createNewItemForm();
 
 createItemsTable();
 
@@ -81,10 +84,13 @@ async function createItemsTable() {
         del.setAttribute('url', delUrl);
         del.onclick = async function() {
             await deleteItem(this.getAttribute("url"));
+
+            refreshItemsTable();
             var myDiv = document.getElementById("itemstablediv");
             var table = document.querySelector("table");
             myDiv.removeChild(table);
             items = [];
+            boxes = [];
             createItemsTable();
         };
 
@@ -183,12 +189,6 @@ async function deleteItem(itemURL) {
     });
 }
 
-// get list of boxes
-// populate box name that is linked to item
-// drop down with list of boxes previously selected
-// > this will call a put that updates the box then refreshes the table
-
-
 async function getBoxes() {
     try {
         var hasNextLink = false;
@@ -237,5 +237,62 @@ async function fetchBoxId(itemBoxURL) {
     });
 
     return retURL;
+}
 
+// create new item
+// put an input box in the div newitems
+// save button that adds it
+// save button calls the Post for item with the name
+// if someone hits save and there is no data then do not call post
+
+/*async function createNewItemForm() {
+    var myDiv = document.getElementById("newitemsdiv");
+
+    var newItemForm = document.createElement("form");
+    newItemForm.id = "new_item_form";
+    var newItemLabel = document.createElement("label");
+
+    var itemInput = document.createElement("input");
+}
+*/
+
+async function saveItem(form) {
+    var name = form.new_items_input.value;
+
+    await postItem(name);
+
+    refreshItemsTable();
+
+    form.new_items_input.value = "";
+}
+
+async function postItem(name) {
+
+    var url = 'http://localhost:8080/item';
+    
+    await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: name
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Item POST successfull:', data);
+        })
+        .catch(error => {
+            console.error('error item POST:', error);
+        });
+}
+
+async function refreshItemsTable() {
+            var myDiv = document.getElementById("itemstablediv");
+            var table = document.querySelector("table");
+            myDiv.removeChild(table);
+            items = [];
+            boxes = [];
+            createItemsTable();
 }
