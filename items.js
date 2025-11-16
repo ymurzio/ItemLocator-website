@@ -57,13 +57,13 @@ async function createItemsTable() {
     var table = document.createElement("table");
 
     var header = document.createElement("tr");
-    var itemName = document.createElement("th");
-    itemName.appendChild(document.createTextNode("Items"));
+    var itemHeader = document.createElement("th");
+    itemHeader.appendChild(document.createTextNode("Items"));
     var deleteColumn = document.createElement("th");
     var boxColumn = document.createElement("th");
     boxColumn.appendChild(document.createTextNode("Box"));
 
-    header.appendChild(itemName);
+    header.appendChild(itemHeader);
     header.appendChild(deleteColumn);
     header.appendChild(boxColumn);
     table.appendChild(header);
@@ -71,8 +71,18 @@ async function createItemsTable() {
     // create rows
     for (var i = 0; i < items.length; i++) {
         var row = document.createElement("tr");
-        var rowName = document.createElement("td");
-        rowName.appendChild(document.createTextNode(items[i][dataIndex]));
+        var itemName = document.createElement("td");
+
+//        var itemText = document.createTextNode(items[i][dataIndex]);
+        var itemText = document.createElement("input");
+        itemText.type = 'text';
+        itemText.value = items[i][dataIndex];
+        itemText.setAttribute('url', items[i][idIndex]);
+        itemText.onchange = async function() {
+            updateItemName(this);
+        };
+
+        itemName.appendChild(itemText);
 
         var deleteTD = document.createElement("td");
 
@@ -142,7 +152,7 @@ async function createItemsTable() {
         boxTD.appendChild(boxDropdown);
 
 
-        row.appendChild(rowName);
+        row.appendChild(itemName);
         row.appendChild(deleteTD);
         row.appendChild(boxTD);
         table.appendChild(row);
@@ -296,3 +306,36 @@ async function refreshItemsTable() {
             boxes = [];
             createItemsTable();
 }
+
+async function updateItemName(input) {
+    var name = input.value;
+    var itemUrl = input.getAttribute('url');
+
+    await patchItem(name, itemUrl);
+
+    refreshItemsTable();
+}
+
+async function patchItem(name, url) {
+
+//    var url = 'http://localhost:8080/item';
+    
+    await fetch(url, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: name
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Item PATCH successfull:', data);
+        })
+        .catch(error => {
+            console.error('error item PATCH:', error);
+        });
+}
+
+
