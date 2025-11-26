@@ -1,20 +1,22 @@
-var items = [];
+const host = 'http://localhost:8080'
+const itemUrl = '/item';
+const boxUrl = '/box';
+
 const dataIndex = 0;
 const idIndex = 1;
 const boxIndex = 2;
 
+var items = [];
 var boxes = [];
-//deleteItem('http://localhost:8080/item/3');
-//postItem("itempost test");
 
-//createNewItemForm();
+newItemsSaveOnEnter();
 
 createItemsTable();
 
 async function getItems() {
     try {
         var hasNextLink = false;
-        var url = 'http://localhost:8080/item';
+        var url = host + itemUrl;
         var j = 0;
         do {
             const response = await fetch(url);
@@ -73,7 +75,6 @@ async function createItemsTable() {
         var row = document.createElement("tr");
         var itemName = document.createElement("td");
 
-//        var itemText = document.createTextNode(items[i][dataIndex]);
         var itemText = document.createElement("input");
         itemText.type = 'text';
         itemText.value = items[i][dataIndex];
@@ -96,12 +97,12 @@ async function createItemsTable() {
             await deleteItem(this.getAttribute("url"));
 
             refreshItemsTable();
-            var myDiv = document.getElementById("itemstablediv");
+            /*var myDiv = document.getElementById("itemstablediv");
             var table = document.querySelector("table");
             myDiv.removeChild(table);
             items = [];
             boxes = [];
-            createItemsTable();
+            createItemsTable();*/
         };
 
         deleteTD.appendChild(del);
@@ -140,13 +141,6 @@ async function createItemsTable() {
         boxDropdown.setAttribute('item-url', items[i][boxIndex]);
         boxDropdown.onchange = async function() {
             await updateBox(this.getAttribute("item-url"), this.value);
-/*            var myDiv = document.getElementById("itemstablediv");
-            var table = document.querySelector("table");
-            myDiv.removeChild(table);
-            items = [];
-            boxes = [];
-            createItemsTable();
-            */
         };
 
         boxTD.appendChild(boxDropdown);
@@ -168,6 +162,10 @@ async function updateBox(itemURL, boxURL) {
     console.log(itemURL);
     console.log(boxURL);
 
+    if (boxURL === "") {
+        deleteItem(itemURL); //only deletes the link to the box
+    } else {
+
     await fetch(itemURL, {
         method: 'PUT',
         headers: {
@@ -182,7 +180,7 @@ async function updateBox(itemURL, boxURL) {
     .catch(error => {
         console.error('error box update:', error);
     });
-
+    }
     console.log("bye from updateBox");
 }
 
@@ -202,7 +200,7 @@ async function deleteItem(itemURL) {
 async function getBoxes() {
     try {
         var hasNextLink = false;
-        var url = 'http://localhost:8080/box';
+        var url = host + boxUrl;
         var j = 0;
         do {
             const response = await fetch(url);
@@ -243,31 +241,19 @@ async function fetchBoxId(itemBoxURL) {
         retURL = data._links.self.href;
     })
     .catch(error => {
-        console.error('error fetching:', error);
+        console.info("This item doesn't have a box:", error);
     });
 
     return retURL;
 }
 
-// create new item
-// put an input box in the div newitems
-// save button that adds it
-// save button calls the Post for item with the name
-// if someone hits save and there is no data then do not call post
-
-/*async function createNewItemForm() {
-    var myDiv = document.getElementById("newitemsdiv");
-
-    var newItemForm = document.createElement("form");
-    newItemForm.id = "new_item_form";
-    var newItemLabel = document.createElement("label");
-
-    var itemInput = document.createElement("input");
-}
-*/
-
-async function saveItem(form) {
+async function createItem(form) {
     var name = form.new_items_input.value;
+
+    if (name === "") {
+        console.info("found the blank");
+        return;
+    }
 
     await postItem(name);
 
@@ -278,7 +264,7 @@ async function saveItem(form) {
 
 async function postItem(name) {
 
-    var url = 'http://localhost:8080/item';
+    var url = host + itemUrl;
     
     await fetch(url, {
         method: 'POST',
@@ -317,8 +303,6 @@ async function updateItemName(input) {
 }
 
 async function patchItem(name, url) {
-
-//    var url = 'http://localhost:8080/item';
     
     await fetch(url, {
         method: 'PATCH',
@@ -338,4 +322,39 @@ async function patchItem(name, url) {
         });
 }
 
+/*
+async function newItemsSaveOnEnter() {
+    var myForm = document.getElementById("new_items_form");
+    myForm.addEventListener("keydown", function(event) {
+        if (event.keyCode === 13) {
+            event.preventDefault();
+            ;
+//            document.getElementById('new_items_save_button').click();
+//            createItem(this.form);
+            console.info("hi from enter button");
+            ;
+        }
+        ;
+    });
+    ;
+}
+*/
+
+/**
+ * after the html window loads the enter key can be used to save an item instead of clicking the save button
+ * there is a listener for the enter key that prevents the page from making a submision and calls the create item function
+ */
+async function newItemsSaveOnEnter() {
+    window.onload = function () {
+        var myForm = document.getElementById("new_items_form");
+
+        myForm.addEventListener("keydown", function(event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                createItem(myForm);
+            }
+            ;
+        });
+    }
+}
 

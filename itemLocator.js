@@ -2,6 +2,8 @@
 
 //getAllRooms();
 
+statusChecker();
+
 getAllEverything();
 
 async function getRoom() {
@@ -110,19 +112,24 @@ async function getAllEverything() {
                 itemsAll[j][itemIndex] = myJson._embedded.item[i].name;
 
                 var boxLink = myJson._embedded.item[i]._links.box.href;
-                const boxResponse = await fetch(boxLink);
-                const boxJson = await boxResponse.json();
-                itemsAll[j][boxIndex] = boxJson.name;
+                try {
+                    const boxResponse = await fetch(boxLink);
+                    const boxJson = await boxResponse.json();
+                    itemsAll[j][boxIndex] = boxJson.name;
 
-                var locationLink = boxJson._links.location.href;
-                const locationResponse = await fetch(locationLink);
-                const locationJson = await locationResponse.json();
-                itemsAll[j][locationIndex] = locationJson.nearTo;
+                    var locationLink = boxJson._links.location.href;
+                    const locationResponse = await fetch(locationLink);
+                    const locationJson = await locationResponse.json();
+                    itemsAll[j][locationIndex] = locationJson.nearTo;
 
-                const roomLink = locationJson._links.room.href;
-                const roomResponse = await fetch(roomLink);
-                const roomJson = await roomResponse.json();
-                itemsAll[j][roomIndex] = roomJson.roomName;
+                    const roomLink = locationJson._links.room.href;
+                    const roomResponse = await fetch(roomLink);
+                    const roomJson = await roomResponse.json();
+                    itemsAll[j][roomIndex] = roomJson.roomName;
+
+                } catch(error) {
+                    console.log('box or location or room not found. bad fetch:', error);
+                }
 
                 j++;
             }
@@ -292,3 +299,13 @@ async function getAllEverything() {
 
 }
 
+async function statusChecker() {
+    try {
+        var url = 'http://localhost:8080/item';
+        const response = await fetch(url);
+    } catch(error) {
+        console.log('no good. bad fetch:', error);
+        var statusText = document.getElementById('service-status');
+        statusText.appendChild(document.createTextNode("Service is off!"));
+    }
+}
