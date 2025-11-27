@@ -1,4 +1,4 @@
-const host = 'http://localhost:8080'
+const host = 'http://localhost:8080';
 const itemUrl = '/item';
 const boxUrl = '/box';
 
@@ -57,6 +57,7 @@ async function createItemsTable() {
     var myDiv = document.getElementById("itemstablediv");
 
     var table = document.createElement("table");
+    table.id = 'my-table';
 
     var header = document.createElement("tr");
     var itemHeader = document.createElement("th");
@@ -72,89 +73,93 @@ async function createItemsTable() {
     
     // create rows
     for (var i = 0; i < items.length; i++) {
-        var row = document.createElement("tr");
-        var itemName = document.createElement("td");
+        // send in the i index to the function
+        var row = await createTableRow(i);
 
-        var itemText = document.createElement("input");
-        itemText.type = 'text';
-        itemText.value = items[i][dataIndex];
-        itemText.setAttribute('url', items[i][idIndex]);
-        itemText.onchange = async function() {
-            updateItemName(this);
-        };
-
-        itemName.appendChild(itemText);
-
-        var deleteTD = document.createElement("td");
-
-        var del = document.createElement("input");
-        del.type = "button";
-        del.className = "delete-button";
-        del.value = "Delete";
-        const delUrl = items[i][idIndex];
-        del.setAttribute('url', delUrl);
-        del.onclick = async function() {
-            await deleteItem(this.getAttribute("url"));
-
-            refreshItemsTable();
-            /*var myDiv = document.getElementById("itemstablediv");
-            var table = document.querySelector("table");
-            myDiv.removeChild(table);
-            items = [];
-            boxes = [];
-            createItemsTable();*/
-        };
-
-        deleteTD.appendChild(del);
-
-        // box name here
-        var boxTD = document.createElement("td");
-
-        var boxDropdown = document.createElement("select");
-
-        var defaultCreated = false;
-        var boxId = await fetchBoxId(items[i][boxIndex]);
-        console.log("box url for default:", boxId);
-        // create options for dropdown with the names of the boxes
-        for (var j = 0; j < boxes.length; j++) {
-            var boxOption = document.createElement("option");
-            boxOption.value = boxes[j][idIndex];
-            boxOption.textContent = boxes[j][dataIndex];
-
-            if (boxId === boxes[j][idIndex]) {
-                boxOption.selected = true;
-                console.log("HI FROM DEFAULT DD");
-                defaultCreated = true;
-            }
-
-            boxDropdown.appendChild(boxOption);   
-
-        }
-
-        //create blank option
-        var boxOption = document.createElement("option");
-        if (defaultCreated === false) {
-            boxOption.selected = true;
-        }
-        boxDropdown.appendChild(boxOption);
-        
-        boxDropdown.setAttribute('item-url', items[i][boxIndex]);
-        boxDropdown.onchange = async function() {
-            await updateBox(this.getAttribute("item-url"), this.value);
-        };
-
-        boxTD.appendChild(boxDropdown);
-
-
-        row.appendChild(itemName);
-        row.appendChild(deleteTD);
-        row.appendChild(boxTD);
         table.appendChild(row);
     }
 
     // append the header and rows
     myDiv.appendChild(table);
 
+}
+
+async function createTableRow(i) {
+    var row = document.createElement("tr");
+    var itemName = document.createElement("td");
+
+    var itemText = document.createElement("input");
+    itemText.type = 'text';
+    itemText.value = items[i][dataIndex];
+    itemText.setAttribute('url', items[i][idIndex]);
+    itemText.onchange = async function() {
+        updateItemName(this);
+    };
+
+    itemName.appendChild(itemText);
+
+    var deleteTD = document.createElement("td");
+
+    var deleteInput = document.createElement("input");
+    deleteInput.type = "button";
+    deleteInput.className = "delete-button";
+    deleteInput.value = "Delete";
+    const delUrl = items[i][idIndex];
+    deleteInput.setAttribute('url', delUrl);
+    deleteInput.onclick = async function() {
+        const status = await deleteItem(this.getAttribute("url"));
+
+        if (status) {
+            this.parentNode.parentNode.remove();
+        }
+    };
+
+    deleteTD.appendChild(deleteInput);
+
+    // box name here
+    var boxTD = document.createElement("td");
+
+    var boxDropdown = document.createElement("select");
+
+    var defaultCreated = false;
+    var boxId = await fetchBoxId(items[i][boxIndex]);
+    console.log("box url for default:", boxId);
+    // create options for dropdown with the names of the boxes
+    for (var j = 0; j < boxes.length; j++) {
+        var boxOption = document.createElement("option");
+        boxOption.value = boxes[j][idIndex];
+        boxOption.textContent = boxes[j][dataIndex];
+
+        if (boxId === boxes[j][idIndex]) {
+            boxOption.selected = true;
+            console.log("HI FROM DEFAULT DD");
+            defaultCreated = true;
+        }
+
+        boxDropdown.appendChild(boxOption);
+
+    }
+
+    //create blank option
+    var boxOption = document.createElement("option");
+    if (defaultCreated === false) {
+        boxOption.selected = true;
+    }
+    boxDropdown.appendChild(boxOption);
+
+    boxDropdown.setAttribute('item-url', items[i][boxIndex]);
+    boxDropdown.onchange = async function() {
+        await updateBox(this.getAttribute("item-url"), this.value);
+    };
+
+    boxTD.appendChild(boxDropdown);
+
+
+    row.appendChild(itemName);
+    row.appendChild(deleteTD);
+    row.appendChild(boxTD);
+
+    return row;
 }
 
 async function updateBox(itemURL, boxURL) {
@@ -185,16 +190,20 @@ async function updateBox(itemURL, boxURL) {
 }
 
 async function deleteItem(itemURL) {
+    var status = false;
     await fetch(itemURL, {
         method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
         console.log('delete successfull:', data);
+        status = true;
     })
     .catch(error => {
         console.error('error deleting:', error);
     });
+
+    return status;
 }
 
 async function getBoxes() {
@@ -255,15 +264,22 @@ async function createItem(form) {
         return;
     }
 
-    await postItem(name);
+    const status = await postItem(name);
 
-    refreshItemsTable();
+    if (status) {
+        // add the new item from the array to the table
+        var table = document.getElementById('my-table');
+        var row = await createTableRow(items.length - 1);
 
-    form.new_items_input.value = "";
+        table.appendChild(row);
+
+        form.new_items_input.value = "";
+    }
+
 }
 
 async function postItem(name) {
-
+    var status = false;
     var url = host + itemUrl;
     
     await fetch(url, {
@@ -278,10 +294,19 @@ async function postItem(name) {
         .then(response => response.json())
         .then(data => {
             console.log('Item POST successfull:', data);
+            status = true;
+
+            var j = items.length;
+            items[j] = [];
+            items[j][dataIndex] = data.name;
+            items[j][idIndex] = data._links.self.href;
+            items[j][boxIndex] = data._links.box.href;
         })
         .catch(error => {
             console.error('error item POST:', error);
         });
+
+        return status;
 }
 
 async function refreshItemsTable() {
@@ -297,48 +322,29 @@ async function updateItemName(input) {
     var name = input.value;
     var itemUrl = input.getAttribute('url');
 
-    await patchItem(name, itemUrl);
-
-    refreshItemsTable();
+    await patchItemName(name, itemUrl);
 }
 
-async function patchItem(name, url) {
-    
+async function patchItemName(itemName, url) {
+
     await fetch(url, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            name: name
+            name: itemName
         })
     })
         .then(response => response.json())
         .then(data => {
-            console.log('Item PATCH successfull:', data);
+            console.log('Item Name PATCH successfull:', data);
         })
         .catch(error => {
-            console.error('error item PATCH:', error);
+            console.error('error item name PATCH:', error);
         });
-}
 
-/*
-async function newItemsSaveOnEnter() {
-    var myForm = document.getElementById("new_items_form");
-    myForm.addEventListener("keydown", function(event) {
-        if (event.keyCode === 13) {
-            event.preventDefault();
-            ;
-//            document.getElementById('new_items_save_button').click();
-//            createItem(this.form);
-            console.info("hi from enter button");
-            ;
-        }
-        ;
-    });
-    ;
 }
-*/
 
 /**
  * after the html window loads the enter key can be used to save an item instead of clicking the save button
@@ -353,8 +359,6 @@ async function newItemsSaveOnEnter() {
                 event.preventDefault();
                 createItem(myForm);
             }
-            ;
         });
     }
 }
-
