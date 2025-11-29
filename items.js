@@ -9,20 +9,30 @@ const boxIndex = 2;
 var items = [];
 var boxes = [];
 
+var pageTotal;
+var pageIndex;
+var currentPageLink;
+
 newItemsSaveOnEnter();
 
-createItemsTable();
+createItemsTable(host + itemUrl, host + boxUrl);
 
-async function getItems() {
+async function getItems(itemsUrl) {
+    console.log(itemsUrl);
+
     try {
         var hasNextLink = false;
-        var url = host + itemUrl;
         var j = 0;
-        do {
-            const response = await fetch(url);
+        //do {
+            const response = await fetch(itemsUrl);
             const myJson = await response.json();
             console.log(myJson);
             console.log(myJson._embedded.item.length);
+            pageTotal = myJson.page.totalPages;
+            pageIndex = myJson.page.number;
+            currentPageLink = myJson._links.self.href;
+            console.log("page index set to:", pageIndex);
+
             for (var i = 0; i < myJson._embedded.item.length; i++) {
                 items[j] = [];
                 items[j][dataIndex] = myJson._embedded.item[i].name;
@@ -33,7 +43,6 @@ async function getItems() {
             try {
                 if (typeof myJson._links.next !== 'undefined') {
                     hasNextLink = true;
-                    url = myJson._links.next.href;
                 } else {
                     hasNextLink = false;
                 }
@@ -41,7 +50,7 @@ async function getItems() {
                 console.log('no next link. exiting while', error);
                 hasNextLink = false;
             }
-        } while (hasNextLink === true);
+        //} while (hasNextLink === true);
     } catch(error) {
         console.log('no good. bad fetch:', error);
     }
@@ -49,8 +58,11 @@ async function getItems() {
 
 }
 
-async function createItemsTable() {
-    await getItems();
+async function createItemsTable(itemsUrl, boxesUrl) {
+    console.log(itemsUrl);
+    console.log(boxesUrl);
+
+    await getItems(itemsUrl);
     await getBoxes();
 
     // create header
@@ -82,6 +94,7 @@ async function createItemsTable() {
     // append the header and rows
     myDiv.appendChild(table);
 
+    createPagination();
 }
 
 async function createTableRow(i) {
@@ -183,7 +196,7 @@ async function updateBox(itemURL, boxURL) {
         console.log('box update successfull:', data);
     })
     .catch(error => {
-        console.error('error box update:', error);
+        console.error('error box update:', error); // this error is happening because we are not expecting a json response from the put call. I am not sure if we should expect any response.
     });
     }
     console.log("bye from updateBox");
@@ -241,8 +254,14 @@ async function getBoxes() {
     console.log('full arrary', boxes.length);
 }
 
+/**
+ * Takes the item's box url and gets the actual url of the box.
+ * @param itemBoxURL URL of the item/box ex. items/5/box
+ * @return Actual URL of the box ex. box/1
+ */
 async function fetchBoxId(itemBoxURL) {
     var retURL;
+
     await fetch(itemBoxURL)
     .then(response => response.json())
     .then(data => {
@@ -250,7 +269,7 @@ async function fetchBoxId(itemBoxURL) {
         retURL = data._links.self.href;
     })
     .catch(error => {
-        console.info("This item doesn't have a box:", error);
+        console.info("This item doesn't have a box. Should be ok:", error);
     });
 
     return retURL;
@@ -309,13 +328,13 @@ async function postItem(name) {
         return status;
 }
 
-async function refreshItemsTable() {
+async function refreshItemsTable(itemUrl) {
             var myDiv = document.getElementById("itemstablediv");
             var table = document.querySelector("table");
             myDiv.removeChild(table);
             items = [];
             boxes = [];
-            createItemsTable();
+            createItemsTable(itemUrl, host + boxUrl);
 }
 
 async function updateItemName(input) {
@@ -361,4 +380,74 @@ async function newItemsSaveOnEnter() {
             }
         });
     }
+}
+
+/**
+ * Creates a list of the page numbers that are clickable.
+ */
+async function createPagination() {
+    console.log('hello from pagination!');
+
+    // these are true if pages exist beyond the first and last displayed page number
+    var morePreviousPagesExist = false;
+    var moreNextPagesExist = false;
+
+    // determine 1st and last displayed page numbers
+    var firstPageNumber;
+    if (pageIndex - 4 < 0 ) {
+        firstPageNumber = 1;
+    } else {
+        firstPageNumber = pageIndex - 4;
+        morePreviousPagesExist = true;
+    }
+
+    var lastPageNumber;
+    if (pageIndex + 5 > pageTotal) {
+        lastPageNumber = pageTotal;
+    } else {
+        lastPageNumber = pageIndex + 5;
+        moreNextPagesExist = true;
+    }
+
+    // create list of numbers, loop through pageTotal
+    // when pageIndex matches the i+1 of the loop then you make that number unclickable because that is the current page
+
+    var pageDiv = document.getElementById('pagediv');
+    for (var i = firstPageNumber; i < lastPageNumber + 1; i++) {
+        console.debug(i);
+
+        var pageLink;
+
+        if (pageIndex + 1 === i) {
+            pageLink = document.createElement("p");
+            pageLink.innerHTML = i;
+        } else {
+            // set the page=N to i - 1 given next
+            var link = currentPageLink;
+            var newPageNumber = i - 1;
+            var replacement = "page=" + newPageNumber;
+            link = link.replace(/page=[0-9]*/, replacement);
+            console.debug(link);
+
+            pageLink = document.createElement("input");
+            pageLink.value = i;
+            pageLink.type = "button"
+            pageLink.className = "page-button";
+            pageLink.setAttribute('url', link);
+            pageLink.onclick = function() {
+                pageLinkButton(this);
+            }
+        }
+
+
+        pageDiv.appendChild(pageLink);
+    }
+}
+
+async function pageLinkButton(button) {
+    var itemUrl = button.getAttribute('url');
+    await refreshItemsTable(itemUrl);
+
+    var div = document.getElementById('pagediv');
+    div.innerHTML = "";
 }
