@@ -12,8 +12,9 @@ var boxes = [];
 var pageTotal;
 var pageIndex;
 var currentPageLink;
+var recordsPerPage = 20;
 
-newItemsSaveOnEnter();
+onWindowLoad();
 
 createItemsTable(host + itemUrl, host + boxUrl);
 
@@ -23,34 +24,33 @@ async function getItems(itemsUrl) {
     try {
         var hasNextLink = false;
         var j = 0;
-        //do {
-            const response = await fetch(itemsUrl);
-            const myJson = await response.json();
-            console.log(myJson);
-            console.log(myJson._embedded.item.length);
-            pageTotal = myJson.page.totalPages;
-            pageIndex = myJson.page.number;
-            currentPageLink = myJson._links.self.href;
-            console.log("page index set to:", pageIndex);
 
-            for (var i = 0; i < myJson._embedded.item.length; i++) {
-                items[j] = [];
-                items[j][dataIndex] = myJson._embedded.item[i].name;
-                items[j][idIndex] = myJson._embedded.item[i]._links.self.href;
-                items[j][boxIndex] = myJson._embedded.item[i]._links.box.href;
-                j++;
-            }
-            try {
-                if (typeof myJson._links.next !== 'undefined') {
-                    hasNextLink = true;
-                } else {
-                    hasNextLink = false;
-                }
-            } catch(error) {// haven't seen this happen yet
-                console.log('no next link. exiting while', error);
+        const response = await fetch(itemsUrl);
+        const myJson = await response.json();
+        console.log(myJson);
+        console.log(myJson._embedded.item.length);
+        pageTotal = myJson.page.totalPages;
+        pageIndex = myJson.page.number;
+        currentPageLink = myJson._links.self.href;
+        console.log("page index set to:", pageIndex);
+
+        for (var i = 0; i < myJson._embedded.item.length; i++) {
+            items[j] = [];
+            items[j][dataIndex] = myJson._embedded.item[i].name;
+            items[j][idIndex] = myJson._embedded.item[i]._links.self.href;
+            items[j][boxIndex] = myJson._embedded.item[i]._links.box.href;
+            j++;
+        }
+        try {
+            if (typeof myJson._links.next !== 'undefined') {
+                hasNextLink = true;
+            } else {
                 hasNextLink = false;
             }
-        //} while (hasNextLink === true);
+        } catch(error) {// haven't seen this happen yet
+            console.log('no next link. exiting while', error);
+            hasNextLink = false;
+        }
     } catch(error) {
         console.log('no good. bad fetch:', error);
     }
@@ -370,16 +370,14 @@ async function patchItemName(itemName, url) {
  * there is a listener for the enter key that prevents the page from making a submision and calls the create item function
  */
 async function newItemsSaveOnEnter() {
-    window.onload = function () {
-        var myForm = document.getElementById("new_items_form");
+    var myForm = document.getElementById("new_items_form");
 
-        myForm.addEventListener("keydown", function(event) {
-            if (event.keyCode === 13) {
-                event.preventDefault();
-                createItem(myForm);
-            }
-        });
-    }
+    myForm.addEventListener("keydown", function(event) {
+        if (event.keyCode === 13) {
+            event.preventDefault();
+            createItem(myForm);
+        }
+    });
 }
 
 /**
@@ -448,6 +446,62 @@ async function pageLinkButton(button) {
     var itemUrl = button.getAttribute('url');
     await refreshItemsTable(itemUrl);
 
-    var div = document.getElementById('pagediv');
-    div.innerHTML = "";
+    var pageDiv = document.getElementById('pagediv');
+    pageDiv.innerHTML = "";
+}
+
+async function changeRecordsPerPage() {
+    var recordsPerDiv = document.getElementById('recordsperpagediv');
+    var recordOptions = [10, 20, 50];
+    var numberPerPageDropdown = document.createElement("select");
+
+    for (var i = 0; i < recordOptions.length; i++) {
+        console.log("record array:", i);
+        var pageOption = document.createElement("option");
+        pageOption.value = recordOptions[i];
+        pageOption.textContent = recordOptions[i];
+
+        if (recordOptions[i] === recordsPerPage) {
+            pageOption.selected = true;
+        } else {
+            ;
+        }
+
+        numberPerPageDropdown.appendChild(pageOption);
+    }
+
+    numberPerPageDropdown.onchange = function() {
+        updateRecordsPerPage(this);
+    }
+
+    recordsPerDiv.appendChild(numberPerPageDropdown);
+}
+
+/**
+ * Update the records per page based on the dropdown and refresh the table.
+ */
+async function updateRecordsPerPage(dropdown) {
+    console.log('hi from update records');
+
+    recordsPerPage = dropdown.value;
+
+    var link = currentPageLink;
+    var newSizeNumber = recordsPerPage;
+    var replacement = "size=" + newSizeNumber;
+    link = link.replace(/size=[0-9]*/, replacement);
+    console.debug(link);
+
+    var pageDiv = document.getElementById('pagediv');
+    pageDiv.innerHTML = "";
+    await refreshItemsTable(link);
+}
+
+/**
+ * Runs all functions that require the HTML page to be loaded before running.
+ */
+async function onWindowLoad() {
+    window.onload = function () {
+        newItemsSaveOnEnter();
+        changeRecordsPerPage();
+    }
 }
