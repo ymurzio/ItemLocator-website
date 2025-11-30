@@ -29,8 +29,18 @@ async function getItems(itemsUrl) {
         const myJson = await response.json();
         console.log(myJson);
         console.log(myJson._embedded.item.length);
-        pageTotal = myJson.page.totalPages;
-        pageIndex = myJson.page.number;
+
+        try {
+            if (typeof myJson.page.totalPages !== 'undefined') {
+                pageTotal = myJson.page.totalPages;
+                pageIndex = myJson.page.number;
+            }
+        } catch(error) {
+            console.log('no pagination: ', error);
+            pageTotal = 1;
+            pageIndex = 0;
+        }
+
         currentPageLink = myJson._links.self.href;
         console.log("page index set to:", pageIndex);
 
@@ -329,12 +339,17 @@ async function postItem(name) {
 }
 
 async function refreshItemsTable(itemUrl) {
-            var myDiv = document.getElementById("itemstablediv");
-            var table = document.querySelector("table");
-            myDiv.removeChild(table);
-            items = [];
-            boxes = [];
-            createItemsTable(itemUrl, host + boxUrl);
+    var pageDiv = document.getElementById('pagediv');
+    pageDiv.innerHTML = "";
+
+    var myDiv = document.getElementById("itemstablediv");
+    var table = document.querySelector("table");
+    myDiv.removeChild(table);
+
+    items = [];
+    boxes = [];
+
+    createItemsTable(itemUrl, host + boxUrl);
 }
 
 async function updateItemName(input) {
@@ -489,6 +504,9 @@ async function updateRecordsPerPage(dropdown) {
     var newSizeNumber = recordsPerPage;
     var replacement = "size=" + newSizeNumber;
     link = link.replace(/size=[0-9]*/, replacement);
+
+    var pageReplacement = "page=" + 0;
+    link = link.replace(/page=[0-9]*/, replacement);
     console.debug(link);
 
     var pageDiv = document.getElementById('pagediv');
@@ -503,5 +521,33 @@ async function onWindowLoad() {
     window.onload = function () {
         newItemsSaveOnEnter();
         changeRecordsPerPage();
+        searchOnEnter();
+    }
+}
+
+async function searchOnEnter() {
+    var myForm = document.getElementById("search_form");
+
+    myForm.addEventListener("keydown", function(event) {
+        if (event.keyCode === 13) {
+            event.preventDefault();
+            searchItems(myForm);
+        }
+    });
+}
+
+/**
+ * Calculate the item api call based on the search term. Then refresh the table. Refreshing the table with the new search url will run the search.
+ */
+async function searchItems(searchForm) {
+    // if the reset button was hit then reset the url and refresh
+    if (searchForm === "RESET" || searchForm.search_input.value === "") {
+        refreshItemsTable(host + itemUrl);
+    } else {
+        // calculate the new api
+        //example url: http://localhost:8080/item/search/findByName?name=try
+        var newUrl = host + itemUrl + '/search/findByName?name=' + searchForm.search_input.value;
+
+        refreshItemsTable(newUrl);
     }
 }

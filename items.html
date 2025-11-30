@@ -25,6 +25,17 @@
 
         <br>
 
+        <div id="search_div">
+            <form id="search_form">
+                <label for="search_input">Search </label>
+                <input type="text" id="search_input">
+                <input type="button" id="search_button" value="Search" onclick="searchItems(this.form)">
+                <input type="button" id="reset_search_button" value="Reset" onclick="searchItems('RESET')">
+            </form>
+        </div>
+
+        <br>
+
         <div id="itemstablediv"></div>
 
         <br>
