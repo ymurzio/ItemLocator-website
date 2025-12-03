@@ -18,17 +18,17 @@ onWindowLoad();
 
 createItemsTable(host + itemUrl, host + boxUrl);
 
+/**
+ * Get items based on the itemsUrl
+ * @itemsUrl URL of items
+ */
 async function getItems(itemsUrl) {
-    console.log(itemsUrl);
-
     try {
         var hasNextLink = false;
         var j = 0;
 
         const response = await fetch(itemsUrl);
         const myJson = await response.json();
-        console.log(myJson);
-        console.log(myJson._embedded.item.length);
 
         try {
             if (typeof myJson.page.totalPages !== 'undefined') {
@@ -42,7 +42,6 @@ async function getItems(itemsUrl) {
         }
 
         currentPageLink = myJson._links.self.href;
-        console.log("page index set to:", pageIndex);
 
         for (var i = 0; i < myJson._embedded.item.length; i++) {
             items[j] = [];
@@ -64,22 +63,22 @@ async function getItems(itemsUrl) {
     } catch(error) {
         console.log('no good. bad fetch:', error);
     }
-    console.log('full arrary', items.length);
 
 }
 
+/**
+ * Create the whole items table.
+ * @itemsUrl As the page you're on or search you entered changes you pass in the appropriate itemsUrl
+ */
 async function createItemsTable(itemsUrl, boxesUrl) {
-    console.log(itemsUrl);
-    console.log(boxesUrl);
-
     await getItems(itemsUrl);
     await getBoxes();
 
     // create header
-    var myDiv = document.getElementById("itemstablediv");
+    var myDiv = document.getElementById("items_table_div");
 
     var table = document.createElement("table");
-    table.id = 'my-table';
+    table.id = 'my_table';
 
     var header = document.createElement("tr");
     var itemHeader = document.createElement("th");
@@ -125,7 +124,7 @@ async function createTableRow(i) {
 
     var deleteInput = document.createElement("input");
     deleteInput.type = "button";
-    deleteInput.className = "delete-button";
+    deleteInput.className = "delete_button";
     deleteInput.value = "Delete";
     const delUrl = items[i][idIndex];
     deleteInput.setAttribute('url', delUrl);
@@ -146,7 +145,7 @@ async function createTableRow(i) {
 
     var defaultCreated = false;
     var boxId = await fetchBoxId(items[i][boxIndex]);
-    console.log("box url for default:", boxId);
+
     // create options for dropdown with the names of the boxes
     for (var j = 0; j < boxes.length; j++) {
         var boxOption = document.createElement("option");
@@ -155,7 +154,6 @@ async function createTableRow(i) {
 
         if (boxId === boxes[j][idIndex]) {
             boxOption.selected = true;
-            console.log("HI FROM DEFAULT DD");
             defaultCreated = true;
         }
 
@@ -170,9 +168,9 @@ async function createTableRow(i) {
     }
     boxDropdown.appendChild(boxOption);
 
-    boxDropdown.setAttribute('item-url', items[i][boxIndex]);
+    boxDropdown.setAttribute('item_url', items[i][boxIndex]);
     boxDropdown.onchange = async function() {
-        await updateBox(this.getAttribute("item-url"), this.value);
+        await updateBox(this.getAttribute("item_url"), this.value);
     };
 
     boxTD.appendChild(boxDropdown);
@@ -186,28 +184,24 @@ async function createTableRow(i) {
 }
 
 async function updateBox(itemURL, boxURL) {
-    console.log("hi from updateBox");
-    console.log(itemURL);
-    console.log(boxURL);
-
     if (boxURL === "") {
         deleteItem(itemURL); //only deletes the link to the box
     } else {
 
-    await fetch(itemURL, {
-        method: 'PUT',
-        headers: {
-        'Content-Type': 'text/uri-list'
-        },
-        body: boxURL
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('box update successfull:', data);
-    })
-    .catch(error => {
-        console.error('error box update:', error); // this error is happening because we are not expecting a json response from the put call. I am not sure if we should expect any response.
-    });
+        await fetch(itemURL, {
+            method: 'PUT',
+            headers: {
+            'Content-Type': 'text/uri-list'
+            },
+            body: boxURL
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('box update successfull:', data);
+        })
+        .catch(error => {
+            console.error('error box update:', error); // this error is happening because we are not expecting a json response from the put call. I am not sure if we should expect any response.
+        });
     }
     console.log("bye from updateBox");
 }
@@ -261,7 +255,6 @@ async function getBoxes() {
     } catch(error) {
         console.log('no good. bad fetch:', error);
     }
-    console.log('full arrary', boxes.length);
 }
 
 /**
@@ -289,7 +282,7 @@ async function createItem(form) {
     var name = form.new_items_input.value;
 
     if (name === "") {
-        console.info("found the blank");
+        console.debug("found the blank");
         return;
     }
 
@@ -297,7 +290,7 @@ async function createItem(form) {
 
     if (status) {
         // add the new item from the array to the table
-        var table = document.getElementById('my-table');
+        var table = document.getElementById('my_table');
         var row = await createTableRow(items.length - 1);
 
         table.appendChild(row);
@@ -339,10 +332,10 @@ async function postItem(name) {
 }
 
 async function refreshItemsTable(itemUrl) {
-    var pageDiv = document.getElementById('pagediv');
-    pageDiv.innerHTML = "";
+    var page_div = document.getElementById('page_div');
+    page_div.innerHTML = "";
 
-    var myDiv = document.getElementById("itemstablediv");
+    var myDiv = document.getElementById("items_table_div");
     var table = document.querySelector("table");
     myDiv.removeChild(table);
 
@@ -425,10 +418,8 @@ async function createPagination() {
     // create list of numbers, loop through pageTotal
     // when pageIndex matches the i+1 of the loop then you make that number unclickable because that is the current page
 
-    var pageDiv = document.getElementById('pagediv');
+    var page_div = document.getElementById('page_div');
     for (var i = firstPageNumber; i < lastPageNumber + 1; i++) {
-        console.debug(i);
-
         var pageLink;
 
         if (pageIndex + 1 === i) {
@@ -440,20 +431,18 @@ async function createPagination() {
             var newPageNumber = i - 1;
             var replacement = "page=" + newPageNumber;
             link = link.replace(/page=[0-9]*/, replacement);
-            console.debug(link);
 
             pageLink = document.createElement("input");
             pageLink.value = i;
             pageLink.type = "button"
-            pageLink.className = "page-button";
+            pageLink.className = "page_button";
             pageLink.setAttribute('url', link);
             pageLink.onclick = function() {
                 pageLinkButton(this);
             }
         }
 
-
-        pageDiv.appendChild(pageLink);
+        page_div.appendChild(pageLink);
     }
 }
 
@@ -461,17 +450,16 @@ async function pageLinkButton(button) {
     var itemUrl = button.getAttribute('url');
     await refreshItemsTable(itemUrl);
 
-    var pageDiv = document.getElementById('pagediv');
-    pageDiv.innerHTML = "";
+    var page_div = document.getElementById('page_div');
+    page_div.innerHTML = "";
 }
 
 async function changeRecordsPerPage() {
-    var recordsPerDiv = document.getElementById('recordsperpagediv');
+    var recordsPerDiv = document.getElementById('records_per_page_div');
     var recordOptions = [10, 20, 50];
     var numberPerPageDropdown = document.createElement("select");
 
     for (var i = 0; i < recordOptions.length; i++) {
-        console.log("record array:", i);
         var pageOption = document.createElement("option");
         pageOption.value = recordOptions[i];
         pageOption.textContent = recordOptions[i];
@@ -496,8 +484,6 @@ async function changeRecordsPerPage() {
  * Update the records per page based on the dropdown and refresh the table.
  */
 async function updateRecordsPerPage(dropdown) {
-    console.log('hi from update records');
-
     recordsPerPage = dropdown.value;
 
     var link = currentPageLink;
@@ -507,10 +493,9 @@ async function updateRecordsPerPage(dropdown) {
 
     var pageReplacement = "page=" + 0;
     link = link.replace(/page=[0-9]*/, replacement);
-    console.debug(link);
 
-    var pageDiv = document.getElementById('pagediv');
-    pageDiv.innerHTML = "";
+    var page_div = document.getElementById('page_div');
+    page_div.innerHTML = "";
     await refreshItemsTable(link);
 }
 
