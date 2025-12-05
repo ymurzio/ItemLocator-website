@@ -99,7 +99,7 @@ async function getAllEverything() {
     var itemsAll = [];
     try {
         var hasNextLink = false;
-        var url = 'http://localhost:8080/item';
+        var url = 'http://localhost:8309/item';
         var j = 0;// we need j to be different than i because i is local to a page
         do {
             const response = await fetch(url);
@@ -301,7 +301,7 @@ async function getAllEverything() {
 
 async function statusChecker() {
     try {
-        var url = 'http://localhost:8080/item';
+        var url = 'http://localhost:8309/item';
         const response = await fetch(url);
     } catch(error) {
         console.log('no good. bad fetch:', error);
