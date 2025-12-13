@@ -14,9 +14,24 @@ var pageIndex;
 var currentPageLink;
 var recordsPerPage = 20;
 
+class URLs {
+    constructor() {
+        ;
+    }
+    static getHostUrl() {
+        return 'http://localhost:8309';
+    }
+    static getItemPath() {
+        return '/item';
+    }
+    static getBoxPath() {
+        return '/box';
+    }
+}
+
 onWindowLoad();
 
-createItemsTable(host + itemUrl, host + boxUrl);
+createItemsTable(URLs.getHostUrl() + URLs.getItemPath(), URLs.getHostUrl() + URLs.getBoxPath());
 
 /**
  * Get items based on the itemsUrl
@@ -62,6 +77,7 @@ async function getItems(itemsUrl) {
         }
     } catch(error) {
         console.log('no good. bad fetch:', error);
+        currentPageLink = '';
     }
 
 }
@@ -302,7 +318,7 @@ async function createItem(form) {
 
 async function postItem(name) {
     var status = false;
-    var url = host + itemUrl;
+    var url = URLs.getHostUrl() + URLs.getItemPath();
     
     await fetch(url, {
         method: 'POST',
@@ -342,7 +358,7 @@ async function refreshItemsTable(itemUrl) {
     items = [];
     boxes = [];
 
-    createItemsTable(itemUrl, host + boxUrl);
+    createItemsTable(itemUrl, URLs.getHostUrl() + URLs.getBoxPath());
 }
 
 async function updateItemName(input) {
@@ -392,11 +408,13 @@ async function newItemsSaveOnEnter() {
  * Creates a list of the page numbers that are clickable.
  */
 async function createPagination() {
-    console.log('hello from pagination!');
-
     // these are true if pages exist beyond the first and last displayed page number
     var morePreviousPagesExist = false;
     var moreNextPagesExist = false;
+
+    if (currentPageLink === "") {
+        return; // if the items fetch finds nothing then we don't create pagination. this will ussualy happen when a search returns empty
+    }
 
     // determine 1st and last displayed page numbers
     var firstPageNumber;
@@ -418,7 +436,7 @@ async function createPagination() {
     // create list of numbers, loop through pageTotal
     // when pageIndex matches the i+1 of the loop then you make that number unclickable because that is the current page
 
-    var page_div = document.getElementById('page_div');
+    var pageDiv = document.getElementById('page_div');
     for (var i = firstPageNumber; i < lastPageNumber + 1; i++) {
         var pageLink;
 
@@ -442,7 +460,7 @@ async function createPagination() {
             }
         }
 
-        page_div.appendChild(pageLink);
+        pageDiv.appendChild(pageLink);
     }
 }
 
@@ -527,11 +545,14 @@ async function searchOnEnter() {
 async function searchItems(searchForm) {
     // if the reset button was hit then reset the url and refresh
     if (searchForm === "RESET" || searchForm.search_input.value === "") {
-        refreshItemsTable(host + itemUrl);
+        var searchValue = document.getElementById('search_input');
+        searchValue.value = "";
+
+        refreshItemsTable(URLs.getHostUrl() + URLs.getItemPath());
     } else {
         // calculate the new api
         //example url: http://localhost:8080/item/search/findByName?name=try
-        var newUrl = host + itemUrl + '/search/findByName?name=' + searchForm.search_input.value;
+        var newUrl = URLs.getHostUrl() + URLs.getItemPath() + '/search/findByName?name=' + searchForm.search_input.value;
 
         refreshItemsTable(newUrl);
     }
